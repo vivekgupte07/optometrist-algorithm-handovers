@@ -24,41 +24,47 @@ def main():
     counter = 0
 
     while not satisfied:
+        
         # Get params from curiculum
-    
+        
         go_to(name='OBSERVE')
         
-        # CV --> repeat until True 
-        add_delay(2.0)
+        #object = False
+        #while not object:
+        #   object = object_CV()
 
-        go_to(name=)
-    
-        # add_delay
-    
-        # grasp(close)
-    
-        # go_to(home)
+        add_delay(2.0) # Delay to avoid moving too soon
+        
+        go_to(name='PICKUP')
+        
+        grasp(act='CLOSE')
+        add_delay(2.0) # Delay to allow grasping 
 
-        # After certain trials as if user's satisfied
+        go_to(name='HOME')
 
-        # add_delay()
+        ## After certain trials as if user's satisfied
+        #if satisfied:
+        #    break
+        #else:
+        #   continue
 
-        # CV --> person's location
-    
-        # calculateHOLoc(delx, dely, delz) 
-    
-        # add_delay()
-    
-        # go_to(HOLocation)
-    
-        # interaction_model(on)
-    
+        #person = False
+        #pos = [0, 0, 0]
+        #while not person:
+        #    person, pos = handover_CV()
+        add_delay(2.0) # Delay before starting HO (Param)
+
+        go_to("HANDOVER") # Performing Reach Phase
+        
+        interaction_mode(switch='on') # Need to make this in response to force
+        
+
         # if forces > threshold:
             # add_delay()
             # grasp(open)
             # add_delay
 
-        # interaction_model(off)
+        interaction_mode(switch='off')
 
 
 
@@ -124,7 +130,7 @@ def go_to(position, orientation, max_linear_speed = 0.5):
         rospy.logerr('Keyboard interrupt detected from the user. Exiting before trajectory completion.')
         return False
 
-def grasp():
+def grasp(act):
     # if gripper is opened, close
     # if gripper is closed, open
     # if successful,open
@@ -132,6 +138,7 @@ def grasp():
 
 def handover_CV():
     # Function to detect handover location
+    # returns if HO is signalled and position
     pass
 
 def object_CV():
@@ -142,7 +149,7 @@ def add_delay(time):
 
     rospy.sleep(time)
 
-def set_interaction_mode():
+def set_interaction_mode(switch):
     pass
 
 
@@ -151,34 +158,58 @@ def set_positions(name):
         pos = [0, 0, 0, 0]
         orientation = [0, 0, 0, 0]
 
-        if name == 'observe':
+        if name == 'OBSERVE':
             pos = [0.6, 0.2, 0.4]
             orientation = [0, 1, 0, 0]
+            #speed=get_params()
             rospy.loginfo('Set next pose to OBSERVE')
 
-        elif name == 'home':
+        elif name == 'HOME':
             pos = [0.4, 0.0, 0.2]
             orientation = [0, 1, 0, 0]
+            #speed=get_params()
             rospy.loginfo('Set next pose to HOME')
-        el
+        
+        elif name == 'PICKUP':
+            pos = [0.6, 0.1, 0.0]
+            orientation = [0, 1, 0, 0]
+            #speed=get_params()
+            rospy.loginfo('Set next pose to HOME')
 
-        elif name = 'cv' :
+        elif name = 'HANDOVER' :
             # Here, get pos from Computer vision
+            # is_person, pos = handover_CV()
+            # if pos is not None:.... continue else go back to HOME
             pos = [1.1, 0.0, 0.3]
             orientation = [0, 1, 0, 0]
+            #speed=get_params()
             rospy.loginfo('Set next pose to HANDOVER')
         else:
             rospy.logerr('Wrong Position Name, setting next pose to HOME')
             pos = [0.4, 0.0, 0.2]
             orientation = [0, 1, 0, 0]
+            #speed=get_params()
             rospy.loginfo('Set next pose to HOME')
             return False
 
-        return pos, orientation
+        return pos, orientation, max_lin_spd
     
     except rospy.ROSInterruptException:
         rospy.logerr('Keyboard interrupt detected from the user. Exiting before trajectory completion.')
         return False
+
+def calc_HO_loc(pos):
+    get_params()
+
+    del_x = -0.3
+    del_y = -0.1
+    del_z = 0.2
+
+    pos[0]+=del_x
+    pos[1]+=del_y
+    pos[2]+=del_z
+
+    return pos
 
 def is_satisfied():
     # Function to ask the user if they are satisfied with the training
@@ -186,6 +217,6 @@ def is_satisfied():
 
 
 def get_params():
-
+    pass
 if __name__ == '__main__':
     main()

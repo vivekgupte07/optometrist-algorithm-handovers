@@ -30,6 +30,7 @@ class Handover(object):
         self.tip_name = 'right_hand'
         self.endpoint_name = 'right_hand'
 
+        self.pubcounter = 0
         self.name = 'HOME'
         self.max_lin_accl = 6.0 
         self.max_rot_speed = 6.28
@@ -37,10 +38,7 @@ class Handover(object):
         self.speed_ratio = 1.0
 
         self.HO_detection_flag = 0
-        self.past_force_x = 0
-        self.past_force_y = 0
-        self.past_force_z = 0
-
+        self.past_force = -1
         self.set_params()
         self.set_interaction_params()
         
@@ -221,37 +219,18 @@ class Handover(object):
         force_x = msg.wrench.force.x
         force_y = msg.wrench.force.y
         force_z = msg.wrench.force.z
-        print(math.sqrt(force_x**2+force_y**2+force_z**2))
+        eq_force = math.sqrt(force_x**2+force_y**2+force_z**2)
 
         self.HO_detection_flag = 0
 
         if self.name == 'TRANSFER':
-            if math.sqrt(force_x**2+force_y**2+force_z**2)>11.5 or math.sqrt(force_x**2+force_y**2+force_z**2)<6:
-                self.HO_detection_flag = 1 
-
-    def old_force_callback(self, msg):
-        force_x = msg.wrench.force.x
-        force_y = msg.wrench.force.y
-        force_z = msg.wrench.force.z
-        print(math.sqrt(force_x**2+force_y**2+force_z**2))
-        self.HO_detection_flag = 0
-        if self.name=='TRANSFER':    
-            if force_x>-7.00 or force_x<-20.00:
-                print('x:', msg.wrench.force.x)
-                self.HO_detection_flag = 1
-
-
-            if force_y>3.50 or force_y<-2.00:
-                print('y:', msg.wrench.force.y)
-                self.HO_detection_flag = 1
-
-            if force_z>(1.0) or force_z<(-8.50):   
-                print('z:', msg.wrench.force.z)
-                self.HO_detection_flag = 1
-
-        self.past_force_x = force_x
-        self.past_force_y = force_y
-        self.past_force_z = force_z
+            self.pubcounter += 1
+            if not self.past_force < 0:
+                print(self.past_force)
+                if eq_force>1.15*self.past_force or eq_force<0.9*self.past_force:
+                    self.HO_detection_flag = 1 
+            if self.pubcounter==50:
+                self.past_force = eq_force
 
     
     def add_timeout(self, duration=5.0):

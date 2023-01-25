@@ -4,13 +4,14 @@ import rospy
 import math
 from intera_core_msgs.msg import EndpointState
 def main():
-	try:
-		rospy.init_node('forces_test_py')
-		sub = rospy.Subscriber('/robot/limb/right/endpoint_state', EndpointState, force_callback)
-		while True:
+	rospy.init_node('forces_test_py')
+	sub = rospy.Subscriber('/robot/limb/right/endpoint_state', EndpointState, force_callback)
+	while True:
+		try:
 			pass
-	except rospy.ROSInterruptionException:
-		rospy.logerr('Detected keyboard interruption from the user')	
+		except rospy.ROSInterruptionException:
+			rospy.logerr('Detected keyboard interruption from the user')	
+	
 		
 
 def force_callback(msg):

@@ -15,49 +15,59 @@ def main():
     # initialize
     satisfied = False
     counter = 0
+    timeout = False
     try:
-        while not satisfied:
-            handover.set_positions(name='OBSERVE')
+        while counter < 100:
+            if not timeout:
+                handover.set_positions(name='OBSERVE')
 
-            obj = False
-            while not obj:
-                obj = handover.object_CV()
-            
-            handover.set_positions(name='PICKUP')
-            
-            # Grasping the object
-            handover.add_delay(0.5)
-            handover.grasp(act='close')
-            handover.add_delay(time=0.50)
+                obj = False
+                while not obj:
+                    obj = handover.object_CV()
 
-            handover.set_positions(name='HOME')
+                handover.set_positions(name='PICKUP')
+                # Grasping the object
+                handover.add_delay(0.50)
+                handover.grasp(act='close')
+                handover.add_delay(0.50)
+
+                handover.set_positions(name='HOME')
+                
+            else:
+                handover.set_positions(name='HOME')
+            
 
             person = False
             while not person:
                 person = handover.handover_CV()
 
-            handover.add_delay(time=0.5) # Delay before starting HO (Param)
-            handover.set_positions("HANDOVER") # Performing Reach Phase
-            handover.add_delay(0.5)
+            
+            handover.add_delay(0.5) # Delay before starting HO (Param)
+            handover.set_positions(name='HANDOVER') # Performing Reach Phase
+            handover.add_delay(0.0)
+
 
             # Handover period with a 5 second timeout
             handover.interaction_mode(False) #### Currently Turned off #### set 'True' to turn on #####
             
-            while not handover.add_timeout(duration=5.0):
-                handover.add_delay(0.01)
-                if handover.HO_flag():
-                    break
+            while not handover.add_timeout(duration=3.0):
+                pass
 
-            handover.grasp(act='open')
-            handover.add_delay(0.3)
+            timeout = handover.get_timeout_state()
+            if not timeout:
+                handover.grasp(act='open')
+                handover.save_log()
+
+            handover.add_delay(0.40)
             handover.interaction_mode(False)
-            if counter > 9:
-                satisfied = handover.is_satisfied()
+            #if counter > 9:
+            #    satisfied = handover.is_satisfied()
 
             counter += 1
 
     except rospy.ROSInterruptException:
         rospy.logerr('Keyboard interrupt detected from the user. Exiting before trajectory completion.')
+        return 
 
 
 

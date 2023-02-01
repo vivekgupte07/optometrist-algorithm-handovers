@@ -3,15 +3,13 @@
 # Main control loop for Sawyer Handover 
 
 import rospy
-from handover import Handover
-from intera_core_msgs.msg import EndpointState
+from handover_class import Handover
 
 PHASE = 1
 
 def main():
     rospy.init_node('control_functions_py')
     handover = Handover()
-    # Get CV --> ID
     # initialize
     satisfied = False
     counter = 0
@@ -20,27 +18,27 @@ def main():
         while counter < 100:
             if not timeout:
                 handover.set_positions(name='OBSERVE')
-
+                
                 obj = False
                 while not obj:
                     obj = handover.object_CV()
-
+                    
                 handover.set_positions(name='PICKUP')
                 # Grasping the object
                 handover.add_delay(0.50)
                 handover.grasp(act='close')
                 handover.add_delay(0.50)
-
+                
                 handover.set_positions(name='HOME')
                 
             else:
                 handover.set_positions(name='HOME')
             
-
+                
             person = False
             while not person:
                 person = handover.handover_CV()
-
+                
             
             handover.add_delay(0.5) # Delay before starting HO (Param)
             handover.set_positions(name='HANDOVER') # Performing Reach Phase
@@ -60,6 +58,7 @@ def main():
 
             handover.add_delay(0.40)
             handover.interaction_mode(False)
+            
             #if counter > 9:
             #    satisfied = handover.is_satisfied()
 

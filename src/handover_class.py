@@ -28,6 +28,7 @@ class Handover(object):
         self.orientation = [0, 0, 0, 0]
         self.success = bool
         self.timeout = bool
+        self.option = str
         self.tip_name = 'right_hand'
         self.endpoint_name = 'right_hand'
 
@@ -45,6 +46,7 @@ class Handover(object):
         self.set_params()
         self.set_interaction_params()
         
+        rospy.init_node("handover_class_py")
         self.forces = rospy.Subscriber('/robot/limb/right/endpoint_state', EndpointState, self.force_callback)
         self.eq_force_to_save = 0
         self.log_data = True
@@ -56,8 +58,10 @@ class Handover(object):
 
     
     def set_params(self):
+        # get_optionAorB():
         # get_params()
-        # Get new values for the params    
+
+        # Get new values for the params from the saved file   
         if self.name == 'TRANSFER':
             self.delay = 2.0
         else:
@@ -216,10 +220,13 @@ class Handover(object):
                 self.pos = [x, y, z]
             else:
                 self.pos = [0.9, 0.0, 0.2]
+
             self.HO_pos = self.pos
+
             #self.orientation = [0.0739582150969, 0.907450368469, -0.127978429887, 0.39330081702]
             self.orientation = [-0.00715778427529, 0.97663386697, 0.0170727236209, 0.21411113494]
             rospy.loginfo('Set next pose to %s', name)
+
             if self.go_to():
                 self.name='TRANSFER'
                 self.get_params()
@@ -230,8 +237,7 @@ class Handover(object):
             self.orientation = [0, 0, 1, 0]
             self.max_speed = 0.1
             rospy.loginfo('Set next pose to HOME')
-            self.go_to()
-
+            self.go_to() 
     
     def HO_flag(self):
         return self.HO_detection_flag
@@ -365,6 +371,10 @@ class Handover(object):
         self.pos[0]+=self.del_x
         self.pos[1]+=self.del_y
         self.pos[2]+=self.del_z
+
+
+    def set_optionAorB(self, option):
+        self.option = option
 
 
     def logger(self):

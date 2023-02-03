@@ -4,9 +4,10 @@
 import math
 import rospy
 import numpy as np
-from numpy import savetxt
 from gripper import gripper
+from numpy import savetxt, loadtxt
 from intera_interface import Limb
+from tune_parameters import Tuning_Algo
 from geometry_msgs.msg import Pose, PoseStamped
 from intera_motion_msgs.msg import TrajectoryOptions
 from intera_motion_interface.utility_functions import int2bool
@@ -28,7 +29,6 @@ class Handover(object):
         self.orientation = [0, 0, 0, 0]
         self.success = bool
         self.timeout = bool
-        self.option = str
         self.tip_name = 'right_hand'
         self.endpoint_name = 'right_hand'
 
@@ -43,6 +43,8 @@ class Handover(object):
         self.past_force = -1
         self.past_force_to_save = -1
 
+        ta = Tuning_Algo()
+
         self.set_params()
         self.set_interaction_params()
         
@@ -53,33 +55,29 @@ class Handover(object):
         self.log = [[-9, -9, -9, 0],]
 
     def get_params(self):
-        # Learning curriculum
-        pass
-
+        filename = ta.whats_filename()
+        params = loadtxt(filename)
+        return params
     
     def set_params(self):
-        # get_optionAorB():
-        # get_params()
+        
+        params_=self.get_params()
 
         # Get new values for the params from the saved file   
         if self.name == 'TRANSFER':
-            self.delay = 2.0
+            self.delay = param_[5]
         else:
             self.delay = 2.0
-        self.low_force_factor = 0.75
-        self.high_force_factor = 1.25
+        self.low_force_factor = 0
+        self.high_force_factor = params_[4]
 
         self.past_force = -1
-        # Offests from CV generated human position
-        self.del_x = -0.3
-        self.del_y = -0.1
-        self.del_z = 0.2
         
 
     def set_trajectory_params(self):
-
+        traj_params = self.get_params()  
         if self.name in ['OBSERVE', 'HOME', 'PICKUP']:
-            self.max_lin_speed = 0.7 # Speed during other phases
+            self.max_lin_speed = traj_param[3] # Speed during other phases
         else:
             self.max_lin_speed = 0.4 # Speed during HO Reach
 
@@ -124,6 +122,7 @@ class Handover(object):
     def go_to(self): 
         
         try:
+            self.set_params()
             self.set_trajectory_params()
                         
             self.traj_options.interpolation_type = TrajectoryOptions.CARTESIAN
@@ -209,21 +208,18 @@ class Handover(object):
             self.go_to()
 
         elif self.name == 'HANDOVER' :
-            # Here, get pos from Computer vision
-            # is_person, pos = handover_CV()
-            # if pos is not None:.... continue else go back to HOME
-            # self.calc_HO_loc()
             if self.log_data:
                 x = np.random.uniform(low=0.85, high=0.95)
                 y = np.random.uniform(low=-0.20, high=0.20)
                 z = np.random.uniform(low=0.15, high=0.25)
                 self.pos = [x, y, z]
             else:
-                self.pos = [0.9, 0.0, 0.2]
+                pos_params = self.get_params()
+                self.pos = [pos_params[0], pos_params[1], pos_params[2]]
 
             self.HO_pos = self.pos
 
-            #self.orientation = [0.0739582150969, 0.907450368469, -0.127978429887, 0.39330081702]
+            # self.orientation = [0.0739582150969, 0.907450368469, -0.127978429887, 0.39330081702]
             self.orientation = [-0.00715778427529, 0.97663386697, 0.0170727236209, 0.21411113494]
             rospy.loginfo('Set next pose to %s', name)
 
@@ -244,11 +240,12 @@ class Handover(object):
 
 
     def force_callback(self, msg):
+        
         force_x = msg.wrench.force.x
         force_y = msg.wrench.force.y
         force_z = msg.wrench.force.z
         eq_force = math.sqrt(force_x**2+force_y**2+force_z**2)
-        #print(self.past_force)
+        
         self.HO_detection_flag = 0
 
         if self.name == 'TRANSFER':
@@ -259,6 +256,7 @@ class Handover(object):
                     self.eq_force_to_save  = eq_force
                     self.past_force_to_save = self.past_force
                     self.past_force = -1
+
             if self.pubcounter==50:
                 self.pubcounter = 0
                 self.past_force = eq_force
@@ -294,7 +292,7 @@ class Handover(object):
     def grasp_detection(self):
         
         #check_grasp_detection()
-        #return grasp_success <-- bool
+        #return grasp_success
         pass
 
     
@@ -365,32 +363,14 @@ class Handover(object):
                rospy.sleep(0.5)
 
 
-    def calc_HO_loc(self):
-        self.set_params()
-        
-        self.pos[0]+=self.del_x
-        self.pos[1]+=self.del_y
-        self.pos[2]+=self.del_z
-
-
-    def set_optionAorB(self, option):
-        self.option = option
-
-
     def logger(self):
         new_entry = self.pos + [self.eq_force_to_save, self.past_force_to_save]
         return True
+
 
     def save_log(self):
         
         if self.logger():
             print("Saving....")
             np.savetxt('log_forces.csv', np.array(self.log))
-
-
-    def is_satisfied(self):
-        print("\n\nAre you satisfied with the Training?\n\n")
-        # answer = yes or no
-        answer = False
-        return answer
     

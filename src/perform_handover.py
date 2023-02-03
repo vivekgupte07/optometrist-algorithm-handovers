@@ -5,14 +5,13 @@
 import rospy
 from handover_class import Handover
 
-def main(option):
+def main():
     handover = Handover()
+    
     # initialize
-    satisfied = False
     counter = 0
     timeout = False
     try:
-        handover.set_optionAorB(option)
         if not timeout:
             handover.set_positions(name='OBSERVE')
             
@@ -21,6 +20,7 @@ def main(option):
                 obj = handover.object_CV()
                 
             handover.set_positions(name='PICKUP')
+            
             # Grasping the object
             handover.add_delay(0.50)
             handover.grasp(act='close')

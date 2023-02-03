@@ -1,47 +1,52 @@
 #! /usr/env/bin python
+
 '''
 Experiment Script
 
 '''
 import os
 import rospy
-
+import perform_handover
+from handover_class import Handover
+from tune_parameters import Tuning_algo
 # Start Experiment
 # Ask for the user name (Deal with new and old user)
 # go to Profile script
-
+ta = Tuning_algo()
+ta.create_profile()
 
 
 # A block to choose whether to skip training (helpful for resuming an expt)
+
 # Perform three demonstrations
 for i in range(3):
-	#perform 1 handover
-	pass
+	perform_handover()
 
+
+# Check if the participant is ready
 # Pause code till experimenter presses a button
+
 
 # Begin tuning
 
-#Phase 1.1 : Pos x
-# Call tuning algorithm
-### define phase name
+ta.set_phase(phase='position_x')
 
-# Phase 1.2 : Pos y
+ta.set_phase(phase='position_y')
 
-# Phase 1.3 : Pos z
+ta.set_phase(phase='position_z')
 
-# Phase 2	: Velocity
+ta.set_phase(phase='vel')
 
-# Phase 3	: Force Limits
+ta.set_phase(phase='force_th')
 
-# Phase 4	: Delays
+ta.set_phase(phase='delay')
 
-
-# Save tuned parameters
 
 
 # Evaluation 
 
-# Perform handove 10 times
+# Perform 10 Handovers
+for i in range(10):
+	perform_handover()
 
 # Think of more evaluation criteria...

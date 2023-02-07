@@ -45,7 +45,7 @@ def main():
         # Handover period with a 5 second timeout
         handover.interaction_mode(False) #### Currently Turned off #### set 'True' to turn on #####
         
-        while not handover.add_timeout(duration=3.0):
+        while not handover.add_timeout(duration=5.0):
             pass
 
         timeout = handover.get_timeout_state()
@@ -55,6 +55,7 @@ def main():
 
         handover.add_delay(0.40)
         handover.interaction_mode(False)
+        handover.set_positions(name='OBSERVE')
 
     except rospy.ROSInterruptException:
         rospy.logerr('Keyboard interrupt detected from the user. Exiting before trajectory completion.')

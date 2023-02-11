@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 
 # Class of functions that generate motion to perform Handovers
+import os
 import math
 import rospy
 import numpy as np
@@ -29,10 +30,12 @@ class Handover(object):
     def __init__(self):
         self.pos = [0, 0, 0]
         self.orientation = [0, 0, 0, 0]
+        
         self.success = bool
         self.timeout = bool
+        
         self.tip_name = 'right_hand'
-        self.endpoint_name = 'right_hand'
+        
         self.eq_force_array = np.zeros(50)
         self.pubcounter = 0
         self.name = 'HOME'
@@ -40,19 +43,17 @@ class Handover(object):
         self.max_rot_speed = 20.00
         self.max_rot_accl = 20.00
         self.speed_ratio = 1.0
-
+        self.moving_avg = list()
         self.HO_detection_flag = 0
         self.past_force = -1
         self.past_force_to_save = -1
-        self.filename_ = str
+        self.force_activation_counter = 0
+        self.force_avg = 0
+        self.filename = str
+        self.dir = '/home/miniproj/catkin_ws/src/vivek-handovers/src/profiles'
         #rospy.init_node("handover_class_py")
-
-        self.filename = rospy.Subscriber('/filename', String, self.filename_callback)
-        #rospy.sleep(0.2)
-
-        self.forces = rospy.Subscriber('/robot/limb/right/endpoint_state', EndpointState, self.force_callback)
-
-        self.velocity = rospy.Subscriber('/robot/limb/right/endpoint_state', EndpointState, self.vel_callback)
+        #sub= rospy.Subscriber('/robot/limb/right/endpoint_state', EndpointState, self.vel_callback)
+        sub = rospy.Subscriber('/filename', String, self.filename_callback)
         self.eq_force_to_save = 0
         self.log_data = True
         self.log = [[-9, -9, -9, 0],]
@@ -65,12 +66,12 @@ class Handover(object):
 
 
     def filename_callback(self, msg):
-        self.filename_ = msg.data
+        self.filename = msg.data
         #print(self.filename_)
 
 
     def get_params(self):
-        params = loadtxt('%s.csv' % self.filename_) #[0.8, 0.0, 0.2, 0.4, 1.55, 0.4] #
+        params = loadtxt(os.path.join(self.dir, '%s.csv' % self.filename)) #[0.8, 0.0, 0.2, 0.4, 1.55, 0.4, 1] #
         return params
     
     def set_params(self):
@@ -132,6 +133,57 @@ class Handover(object):
         self.interaction_frame = Pose()
     
 
+    def set_positions(self, name):
+
+        self.name = name
+        if self.name == 'OBSERVE':
+            self.pos = [0.8, 0.0, 0.2]
+            self.orientation = [0, 1, 0, 0]
+            rospy.loginfo('Set next pose to %s', name)
+            self.go_to()
+
+        elif self.name == 'HOME':
+            self.pos = [0.5, 0.0, 0.2]
+            self.orientation = [0, 1, 0, 0]
+            rospy.loginfo('Set next pose to %s', name)
+            self.go_to()
+
+        elif self.name == 'PICKUP':
+            self.pos = [0.8, 0.0, 0.0]
+            self.orientation = [0, 1, 0, 0]
+            rospy.loginfo('Set next pose to %s', name)
+            self.go_to()
+
+        elif self.name == 'HANDOVER' :
+            if False:#self.log_data:
+                x = np.random.uniform(low=0.85, high=0.95)
+                y = np.random.uniform(low=-0.20, high=0.20)
+                z = np.random.uniform(low=0.15, high=0.25)
+                self.pos = [x, y, z]
+            else:
+                pos_params = self.get_params()
+                self.pos = [pos_params[0], pos_params[1], pos_params[2]]
+
+            self.HO_pos = self.pos
+
+            # self.orientation = [0.0739582150969, 0.907450368469, -0.127978429887, 0.39330081702]
+            self.orientation = [-0.00715778427529, 0.97663386697, 0.0170727236209, 0.21411113494]
+            rospy.loginfo('Set next pose to %s', name)
+
+            if self.go_to():
+                self.forces = rospy.Subscriber('/robot/limb/right/endpoint_state', EndpointState, self.force_callback)
+                self.name='TRANSFER'
+                self.get_params()
+            
+        else:
+            rospy.loginfo('Wrong Position Name, setting next pose to HOME')
+            self.pos = [0.4, 0.0, 0.2]
+            self.orientation = [0, 0, 1, 0]
+            self.max_speed = 0.1
+            rospy.loginfo('Set next pose to HOME')
+            self.go_to()
+
+    
     def go_to(self): 
         
         try:
@@ -200,58 +252,22 @@ class Handover(object):
         
         pass
 
+    def grasp(self, act):
+        try:
+            gripper(act)
 
-    def set_positions(self, name):
-        self.name = name
-        if self.name == 'OBSERVE':
-            self.pos = [0.8, 0.0, 0.2]
-            self.orientation = [0, 1, 0, 0]
-            rospy.loginfo('Set next pose to %s', name)
-            self.go_to()
+            if act=='open':
+                params=self.get_params()
+                self.add_delay(params[5])
+        except rospy.ROSInterruptException:
+            rospy.logerr('Keyboard interrupt detected from the user. Exiting before trajectory completion.')
+            exit()
 
-        elif self.name == 'HOME':
-            self.pos = [0.5, 0.0, 0.2]
-            self.orientation = [0, 1, 0, 0]
-            rospy.loginfo('Set next pose to %s', name)
-            self.go_to()
 
-        elif self.name == 'PICKUP':
-            self.pos = [0.8, 0.0, 0.0]
-            self.orientation = [0, 1, 0, 0]
-            rospy.loginfo('Set next pose to %s', name)
-            self.go_to()
-
-        elif self.name == 'HANDOVER' :
-            if False:#self.log_data:
-                x = np.random.uniform(low=0.85, high=0.95)
-                y = np.random.uniform(low=-0.20, high=0.20)
-                z = np.random.uniform(low=0.15, high=0.25)
-                self.pos = [x, y, z]
-            else:
-                pos_params = self.get_params()
-                self.pos = [pos_params[0], pos_params[1], pos_params[2]]
-
-            self.HO_pos = self.pos
-
-            # self.orientation = [0.0739582150969, 0.907450368469, -0.127978429887, 0.39330081702]
-            self.orientation = [-0.00715778427529, 0.97663386697, 0.0170727236209, 0.21411113494]
-            rospy.loginfo('Set next pose to %s', name)
-
-            if self.go_to():
-                self.name='TRANSFER'
-                self.get_params()
-            
-        else:
-            rospy.loginfo('Wrong Position Name, setting next pose to HOME')
-            self.pos = [0.4, 0.0, 0.2]
-            self.orientation = [0, 0, 1, 0]
-            self.max_speed = 0.1
-            rospy.loginfo('Set next pose to HOME')
-            self.go_to() 
-    
-    
-    def HO_flag(self):
-        return self.HO_detection_flag
+    def grasp_detection(self):
+        #check_grasp_detection()
+        #return grasp_success
+        pass
 
 
     def force_callback(self, msg):
@@ -259,47 +275,42 @@ class Handover(object):
         force_y = msg.wrench.force.y
         force_z = msg.wrench.force.z
         eq_force = math.sqrt(force_x**2+force_y**2+force_z**2)
-        #print(self.past_force)
+
         self.HO_detection_flag = 0
 
+        avg = 0
+        for i in range(len(self.moving_avg)):
+            avg += self.moving_avg[i]
+        if len(self.moving_avg)>0:
+            avg = avg/len(self.moving_avg)
+
+
+        if self.pubcounter==5:
+            self.force_avg=avg+3
+            print(self.force_avg)
+
+
         if self.name == 'TRANSFER':
-            self.pubcounter += 1
-            if not self.past_force < 0:
-                if (eq_force>self.high_force_factor*self.past_force or eq_force<self.low_force_factor*self.past_force):
-                    self.HO_detection_flag = 1
-                    self.eq_force_to_save  = eq_force
-                    self.past_force_to_save = self.past_force
-                    self.past_force = -1
-            if self.pubcounter==50:
-                self.pubcounter = 0
-                self.past_force = eq_force
-
-    #def force_callback(self, msg):
-    #    force_x = msg.wrench.force.x
-    #    force_y = msg.wrench.force.y
-    #    force_z = msg.wrench.force.z
-    #    eq_force = math.sqrt(force_x**2+force_y**2+force_z**2)
+            #print(self.pubcounter, eq_force)    
+            if self.pubcounter>5:
+                if avg > 1.5 * self.force_avg:
+                    self.HO_detection_flag=1
+            if self.HO_detection_flag!=1:
+                #print(eq_force, avg, self.force_avg)
+                pass
         
-    #    self.HO_detection_flag = 0
-    #    
-        #if self.pubcounter<50:
-        #   self.eq_force_array[self.pubcounter]=eq_force
-    #    
-    #    if self.name == 'TRANSFER':
-    #        print(eq_force, self.past_force)
-    #        self.pubcounter += 1
-    #        if not self.past_force < 0:
-    #            if eq_force>self.high_force_factor*self.past_force:
-    #                self.HO_detection_flag = 1
-    #                self.eq_force_to_save  = eq_force
-    #                self.past_force_to_save = self.past_force
-    #                self.past_force = -1
+            self.pubcounter += 1
+            
+        if self.pubcounter >= 5 and len(self.moving_avg)<5:
+                self.moving_avg.append(eq_force)
+        if len(self.moving_avg) >= 5:
+            for i in range(len(self.moving_avg)-1):
+                self.moving_avg[i]=self.moving_avg[i+1]
+            self.moving_avg[-1]=eq_force
 
-    #        if self.pubcounter==50:
-    #            self.past_force = eq_force
-                #print(self.past_force)
-                #plt.plot(np.array(np.arange(50)), np.array(self.eq_force_array))
-                #plt.show()
+            
+    def HO_flag(self):
+        return self.HO_detection_flag
 
     
     def add_timeout(self, duration=5.0):
@@ -316,23 +327,12 @@ class Handover(object):
                 return True
         except rospy.ROSInterruptException:
             rospy.logerr('Keyboard interrupt detected from the user. Exiting before trajectory completion.')
+            exit()
 
     
     def get_timeout_state(self):
+        print("sent timeoutstate")
         return self.timeout
-
-    def grasp(self, act):
-        try:
-            gripper(act)
-        except rospy.ROSInterruptException:
-            rospy.logerr('Keyboard interrupt detected from the user. Exiting before trajectory completion.')
-            return
-
-
-    def grasp_detection(self):
-        #check_grasp_detection()
-        #return grasp_success
-        pass
 
     
     def handover_CV(self):
@@ -352,13 +352,6 @@ class Handover(object):
         rospy.loginfo("Detecting object...")
         self.add_delay(time=2.0) # Delay to mimic detection time
         rospy.loginfo("Object detected!")
-        return True
-
-
-    def add_delay(self, time):
-        
-        self.set_params()
-        rospy.sleep(time)
         return True
 
 
@@ -412,8 +405,15 @@ class Handover(object):
             self.vel_log.append(eq_vel)
 
         if self.name=='TRANSFER':
-            np.savetxt('vel_log.csv', self.vel_log)
+            #np.savetxt('vel_log.csv', self.vel_log)
+            pass
 
+    def add_delay(self, time):
+        
+        self.set_params()
+        rospy.sleep(time)
+        return True
+    
 
     def logger(self):
         new_entry = self.pos + [self.eq_force_to_save, self.past_force_to_save]

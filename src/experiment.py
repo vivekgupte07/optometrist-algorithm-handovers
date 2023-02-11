@@ -15,11 +15,12 @@ from tune_parameters import Tuning_algo
 ta = Tuning_algo()
 ta.create_profile()
 # A block to choose whether to skip training (helpful for resuming an expt)
-
+resume = True
 # Perform three demonstrations
-for i in range(10):
-	perform_handover.main()
-	pass
+for i in range(3):
+	if not resume:
+		perform_handover.main()
+		pass
 
 # Check if the participant is ready
 # Pause code till experimenter presses a button
@@ -31,17 +32,7 @@ if getkey() == chr(0x1b):
 # Begin tuning
 rospy.loginfo("Begin tuning now...")
 
-ta.set_phase(phase='velocity')
-
-ta.set_phase(phase='position_x')
-
-ta.set_phase(phase='position_y')
-
-ta.set_phase(phase='position_z')
-
-ta.set_phase(phase='force_th')
-
-ta.set_phase(phase='delay')
+ta.start_tuning()
 
 
 

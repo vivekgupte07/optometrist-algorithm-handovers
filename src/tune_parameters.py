@@ -132,17 +132,14 @@ class Tuning_algo(object):
 
 				# Check for break criteria
 				if abs(option_1-option_2) < self.break_th  or noof_option_1==4:
-				#if count > 3:					
-					print('option_1=%s' % option_1)
 					final_choice = option_1
 					print('final_choice=%s' %final_choice)
-					break
+					self.satisfied = True
 			except rospy.ROSInterruptException:
 				rospy.logerr('Keyboard interruption detected.')
+		self.satisfied = False
 		self.option = final_choice
 		self.save_params()
-		return True
-
 
 	def set_initial_params(self):
 		params = loadtxt(os.path.join(self.dir, '%s.csv' % self.name))
@@ -158,6 +155,7 @@ class Tuning_algo(object):
 			self.high = 1.0
 			self.low = 0.80
 			self.break_th = 0.05
+
 		elif self.phase=='position_y':
 			self.phase_no =3
 			self.break_th = 0.05
@@ -167,14 +165,14 @@ class Tuning_algo(object):
 		elif self.phase=='position_z':
 			self.phase_no =4
 			self.break_th = 0.05
-			self.high = 0.25
+			self.high = 0.35
 			self.low = 0.15
 			
 
 		elif self.phase=='force_th':
 			self.phase_no =5
-			self.break_th = 0.1
-			self.high = 2.0
+			self.break_th = 0.5
+			self.high = 4.0
 			self.low = 1.25
 
 		elif self.phase=='delay':
@@ -209,38 +207,38 @@ class Tuning_algo(object):
 		if self.params[6]==1:
 			rospy.loginfo('Tuning velocity')
 			self.set_phase(phase='velocity')
-			self.params[6]=2
 			self.save_params()
+			self.params[6]=2
 		
 		if self.params[6]==2:
 			rospy.loginfo('Tuning X')
 			self.set_phase(phase='position_x')
-			self.params[6]=3
 			self.save_params()
+			self.params[6]=3
 		
 		if self.params[6]==3:
 			rospy.loginfo('Tuning Y')
 			self.set_phase(phase='position_y')
-			self.params=4
 			self.save_params()
+			self.params[6]=4
 
 		if self.params[6]==4:
 			rospy.loginfo('Tuning Z')
 			self.set_phase(phase='position_z')
-			self.params=5
 			self.save_params()
+			self.params[6]=5
 
 		if self.params[6]==5:
 			rospy.loginfo('Tuning force')
 			self.set_phase(phase='force_th')
-			self.params=6
 			self.save_params()
+			self.params[6]=6
+			print('TRAINING COMPLETE!')
 
-		if self.params[6]==6:
-			rospy.loginfo('Tuning delay')
-			self.set_phase(phase='delay')
-			self.save_params()
-
+		#if self.params[6]==6:
+		#	rospy.loginfo('Tuning delay')
+		#	self.save_params()
+		#	self.set_phase(phase='delay')
 		return
 
 	
@@ -296,7 +294,7 @@ class Tuning_algo(object):
 
 	def create_std_params(self, name):	
 		self.pos_x = 0.8
-		self.pos_y = 0.0
+		self.pos_y = -0.1
 		self.pos_z = 0.2
 		self.vel   = 0.4
 		self.force_th = 1.35

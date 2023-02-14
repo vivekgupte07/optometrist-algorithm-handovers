@@ -137,7 +137,7 @@ class Handover(object):
 
         self.name = name
         if self.name == 'OBSERVE':
-            self.pos = [0.8, 0.0, 0.2]
+            self.pos = [0.73, 0.0, 0.2]
             self.orientation = [0, 1, 0, 0]
             rospy.loginfo('Set next pose to %s', name)
             self.go_to()
@@ -149,7 +149,7 @@ class Handover(object):
             self.go_to()
 
         elif self.name == 'PICKUP':
-            self.pos = [0.8, 0.0, 0.0]
+            self.pos = [0.73, 0.0, 0.0]
             self.orientation = [0, 1, 0, 0]
             rospy.loginfo('Set next pose to %s', name)
             self.go_to()
@@ -293,7 +293,7 @@ class Handover(object):
         if self.name == 'TRANSFER':
             #print(self.pubcounter, eq_force)    
             if self.pubcounter>5:
-                if avg > 1.5 * self.force_avg:
+                if avg > self.high_force_factor * self.force_avg:
                     self.HO_detection_flag=1
             if self.HO_detection_flag!=1:
                 #print(eq_force, avg, self.force_avg)
@@ -331,7 +331,6 @@ class Handover(object):
 
     
     def get_timeout_state(self):
-        print("sent timeoutstate")
         return self.timeout
 
     

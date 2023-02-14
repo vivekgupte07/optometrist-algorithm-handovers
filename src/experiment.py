@@ -15,7 +15,7 @@ from tune_parameters import Tuning_algo
 ta = Tuning_algo()
 ta.create_profile()
 # A block to choose whether to skip training (helpful for resuming an expt)
-resume = True
+resume = False
 # Perform three demonstrations
 for i in range(3):
 	if not resume:

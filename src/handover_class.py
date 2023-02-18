@@ -8,8 +8,8 @@ import numpy as np
 from gripper import gripper
 from std_msgs.msg import String
 import matplotlib.pyplot as plt
-from numpy import savetxt, loadtxt
 from intera_interface import Limb
+from numpy import savetxt, loadtxt
 from tune_parameters import Tuning_algo
 from geometry_msgs.msg import Pose, PoseStamped
 from intera_motion_msgs.msg import TrajectoryOptions
@@ -50,7 +50,12 @@ class Handover(object):
         self.force_activation_counter = 0
         self.force_avg = 0
         self.filename = str
+
+        self.transfer_data = list()
+        self.transfer_current = list()
+
         self.dir = '/home/miniproj/catkin_ws/src/vivek-handovers/src/profiles'
+        self.tel_dir = '/home/miniproj/catkin_ws/src/vivek-handovers/src/telemetry'
         #rospy.init_node("handover_class_py")
         #sub= rospy.Subscriber('/robot/limb/right/endpoint_state', EndpointState, self.vel_callback)
         sub = rospy.Subscriber('/filename', String, self.filename_callback)
@@ -74,8 +79,8 @@ class Handover(object):
         params = loadtxt(os.path.join(self.dir, '%s.csv' % self.filename)) #[0.8, 0.0, 0.2, 0.4, 1.55, 0.4, 1] #
         return params
     
-    def set_params(self):
-        
+
+    def set_params(self):        
         params_=self.get_params()
 
         # Get new values for the params from the saved file   
@@ -232,7 +237,7 @@ class Handover(object):
                 return False
 
             if result.result:
-                rospy.loginfo('Motion controller successfully finished the trajectory!')
+                #rospy.loginfo('Motion controller successfully finished the trajectory!')
                 self.success = True
                 return True
             else:
@@ -256,15 +261,16 @@ class Handover(object):
         try:
             gripper(act)
 
-            if act=='open':
-                params=self.get_params()
-                self.add_delay(params[5])
+            #if act=='open': (Post gripper opening delay)
+            #    params=self.get_params()
+            #    self.add_delay(params[5])
         except rospy.ROSInterruptException:
             rospy.logerr('Keyboard interrupt detected from the user. Exiting before trajectory completion.')
             exit()
 
 
     def grasp_detection(self):
+        #TO ADD
         #check_grasp_detection()
         #return grasp_success
         pass
@@ -321,9 +327,17 @@ class Handover(object):
                 while (rospy.get_rostime().secs - start_time) <= duration:    
                     if self.HO_flag():
                         self.timeout = False
+                        end_time = rospy.get_rostime().secs
+                        timeout = end_time - start_time
                         break
                     else:
                         self.timeout = True
+                
+                if self.timeout:
+                    self.transfer_current = [[self.force_avg*self.high_force_factor, -1]]
+                else:
+                    self.transfer_current = [[self.force_avg*self.high_force_factor, timeout]]
+                self.save_data()
                 return True
         except rospy.ROSInterruptException:
             rospy.logerr('Keyboard interrupt detected from the user. Exiting before trajectory completion.')
@@ -407,8 +421,8 @@ class Handover(object):
             #np.savetxt('vel_log.csv', self.vel_log)
             pass
 
+
     def add_delay(self, time):
-        
         self.set_params()
         rospy.sleep(time)
         return True
@@ -420,7 +434,20 @@ class Handover(object):
 
 
     def save_log(self):
-        
         if self.logger():
             print("Saving....")
             np.savetxt('log_forces.csv', np.array(self.log))
+
+
+    def save_data(self):
+        path = os.path.join(self.tel_dir, '%s_trns.csv' % self.filename)
+        if os.path.exists(path):
+            self.transfer_data=loadtxt(path)
+            if np.ndim(self.transfer_data)==1:
+                self.transfer_data = [self.transfer_data,]
+            print(self.transfer_data, self.transfer_current)
+            self.transfer_data=np.append(self.transfer_data, self.transfer_current, axis=0)
+            savetxt(path, self.transfer_data)
+
+        else:
+            savetxt(path, np.array(self.transfer_current)) 

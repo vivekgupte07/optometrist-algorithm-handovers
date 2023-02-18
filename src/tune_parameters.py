@@ -10,6 +10,7 @@ import perform_handover
 from numpy import loadtxt, savetxt
 from getkey import getkey
 
+
 class Tuning_algo(object):
 
 
@@ -34,8 +35,12 @@ class Tuning_algo(object):
 		self.satisfied = False
 		self.name = str
 
-		self.dir = '/home/miniproj/catkin_ws/src/vivek-handovers/src/profiles'
+		self.telemetry = list()
+		self.tuning_steps = [0, 0, 0, 0, 0]
+		self.time_per_param = [0, 0, 0, 0, 0]
 
+		self.dir = '/home/miniproj/catkin_ws/src/vivek-handovers/src/profiles'
+		self.tel_dir = '/home/miniproj/catkin_ws/src/vivek-handovers/src/telemetry'
 	
 	def set_phase(self, phase='velocity'):
 		self.phase = phase
@@ -45,15 +50,17 @@ class Tuning_algo(object):
 
 
 	def tuning(self):
+		
+		start_time=rospy.get_rostime().secs
+		self.tuning_steps[int(self.phase_no)-1] = 1
+		
 		print(self.low, self.high)
-
 		mid = (self.low + self.high)/2		
 		noof_option_1 = 0
 		step_size = self.break_th
 		
 		high=self.high
 		low =self.low
-
 
 		#Step 1, always the same.
 		option_1 = self.low
@@ -78,11 +85,10 @@ class Tuning_algo(object):
 			option_1 = high
 			option_2 = low
 			side = 'right'
-
 		i = 0
-
 		######## Main tuning loop ########
 		while not self.satisfied:
+
 			try:
 				if option_1 > option_2:
 					dirc = -1
@@ -99,7 +105,6 @@ class Tuning_algo(object):
 
 				## Get human response
 				self.choose()
-
 				if (not self.choice and option_2==mid) or (self.choice and option_1==mid):
 					i+=1
 					if self.choice:
@@ -135,11 +140,20 @@ class Tuning_algo(object):
 					final_choice = option_1
 					print('final_choice=%s' %final_choice)
 					self.satisfied = True
+					end_tuning_param = rospy.get_rostime().secs
+
 			except rospy.ROSInterruptException:
 				rospy.logerr('Keyboard interruption detected.')
+
 		self.satisfied = False
 		self.option = final_choice
+		end_time = rospy.get_rostime().secs
+		
+		self.time_per_param[int(self.phase_no-1)]=end_time-start_time
+
+		self.save_telemetry()
 		self.save_params()
+
 
 	def set_initial_params(self):
 		params = loadtxt(os.path.join(self.dir, '%s.csv' % self.name))
@@ -167,7 +181,6 @@ class Tuning_algo(object):
 			self.break_th = 0.05
 			self.high = 0.35
 			self.low = 0.15
-			
 
 		elif self.phase=='force_th':
 			self.phase_no =5
@@ -183,19 +196,22 @@ class Tuning_algo(object):
 
 
 	def choose(self):
+		self.tuning_steps[int(self.phase_no)-1] += 1
+		print("Type the preferred option:\n")
 		while True:
 			key = getkey()
 			if key == '1':
+				print('1')
 				self.choice = True
 				break
 			elif key == '2':
+				print('2')
 				self.choice = False
 				break
 			else:
 				rospy.loginfo('Wrong Key! Try again...\n')
 				continue
 		return True
-
 
 
 	def start_tuning(self):
@@ -232,8 +248,8 @@ class Tuning_algo(object):
 			rospy.loginfo('Tuning force')
 			self.set_phase(phase='force_th')
 			self.save_params()
-			self.params[6]=6
-			print('TRAINING COMPLETE!')
+			rospy.loginfo('TRAINING COMPLETE!')
+			#self.params[6]=6
 
 		#if self.params[6]==6:
 		#	rospy.loginfo('Tuning delay')
@@ -245,7 +261,6 @@ class Tuning_algo(object):
 	def load_last_values(self):
 		# Load the existing file of parameters
 		self.params = loadtxt(os.path.join(self.dir, '%s.csv' % self.name))
-		print("Loading values from profile")
 		# Distribute the values in correct data structures
 		self.pos_x = self.params[0]
 		self.pos_y = self.params[1]
@@ -259,7 +274,6 @@ class Tuning_algo(object):
 	def set_params(self):
 		# Method to change a particular parameter during tuning
 		self.load_last_values()
-
 		if self.phase=='position_x':
 			self.params = [self.option, self.pos_y, self.pos_z, self.vel, self.force_th, self.delay, self.phase_no]
 		
@@ -292,31 +306,59 @@ class Tuning_algo(object):
 		perform_handover.main()
 
 
-	def create_std_params(self, name):	
+	def create_std_params(self):	
 		self.pos_x = 0.8
 		self.pos_y = -0.1
 		self.pos_z = 0.2
 		self.vel   = 0.4
-		self.force_th = 1.35
+		self.force_th = 2.00
 		self.delay = 0.3
 		self.phase_no = 1
+		
 		path = os.path.join(self.dir, self.name + '.' + 'csv')
+		
 		if os.path.exists(path):
-			print('Already exists!')
+			print('Profile already exists! Loading values from the existing profile')
 			self.load_last_values()
+			print(self.params)
+			return 1
 
 		else:
 			self.params = np.array([self.pos_x, self.pos_y, self.pos_z, self.vel, self.force_th, self.delay, self.phase_no])
 			savetxt(path, self.params)
-		print(self.params)
-	
+			print(self.params)
+			return 0
+
+
 	def create_profile(self):
 		self.name = raw_input("Participant ID: ")
 
 		# Create std params file
-		self.create_std_params(self.name)
-
+		profile_status = self.create_std_params()
+		self.create_telemetry()
 		rospy.init_node('tuning_algo')
-
 		pub = rospy.Publisher('filename', String, latch=True)
 		pub.publish(self.name)
+		return profile_status
+
+
+	def create_telemetry(self):
+		path = os.path.join(self.tel_dir, self.name + '_tun.' + 'csv')
+
+		if os.path.exists(path):
+			print("Loading existing telemetry")
+			self.load_telemetry()
+
+		else:
+			self.telemetry = [self.tuning_steps, self.time_per_param]
+			self.telemetry = np.array(self.telemetry)
+			savetxt(path, self.telemetry)
+
+
+	def load_telemetry(self):
+		self.telemetry = loadtxt(os.path.join(self.tel_dir, self.name + '_tun.' + 'csv'))
+
+
+	def save_telemetry(self):
+		path = os.path.join(self.tel_dir, self.name + '_tun.' + 'csv')
+		savetxt(path, self.telemetry)

@@ -45,7 +45,7 @@ def main():
         # Handover period with a 5 second timeout
         handover.interaction_mode(False) #### Currently Turned off #### set 'True' to turn on #####
         
-        while not handover.add_timeout(duration=50.0):
+        while not handover.add_timeout(duration=15.0):
             pass
 
         timeout = handover.get_timeout_state()

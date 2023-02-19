@@ -32,7 +32,7 @@ class Handover(object):
         self.orientation = [0, 0, 0, 0]
         
         self.success = bool
-        self.timeout = bool
+        self.timeout = 0
         
         self.tip_name = 'right_hand'
         
@@ -54,8 +54,8 @@ class Handover(object):
         self.transfer_data = list()
         self.transfer_current = list()
 
-        self.dir = '/home/miniproj/catkin_ws/src/vivek-handovers/src/profiles'
-        self.tel_dir = '/home/miniproj/catkin_ws/src/vivek-handovers/src/telemetry'
+        self.dir = '/home/miniproj/catkin_ws/src/vivek-handovers/profiles'
+        self.tel_dir = '/home/miniproj/catkin_ws/src/vivek-handovers/telemetry'
         #rospy.init_node("handover_class_py")
         #sub= rospy.Subscriber('/robot/limb/right/endpoint_state', EndpointState, self.vel_callback)
         sub = rospy.Subscriber('/filename', String, self.filename_callback)
@@ -72,7 +72,6 @@ class Handover(object):
 
     def filename_callback(self, msg):
         self.filename = msg.data
-        #print(self.filename_)
 
 
     def get_params(self):
@@ -292,7 +291,7 @@ class Handover(object):
 
 
         if self.pubcounter==5:
-            self.force_avg=avg+3
+            self.force_avg=avg+2
             print(self.force_avg)
 
 
@@ -354,7 +353,7 @@ class Handover(object):
         # returns if HO is signalled and position
         self.set_params()
         rospy.loginfo("Detecting HO Signal...")
-        self.add_delay(time=2.0) # Delay to mimic detection time
+        self.add_delay(time=1.0) # Delay to mimic detection time
         rospy.loginfo("Signal Detected. Starting Handover...")
         return True
     
@@ -445,7 +444,7 @@ class Handover(object):
             self.transfer_data=loadtxt(path)
             if np.ndim(self.transfer_data)==1:
                 self.transfer_data = [self.transfer_data,]
-            print(self.transfer_data, self.transfer_current)
+            #print(self.transfer_data, self.transfer_current)
             self.transfer_data=np.append(self.transfer_data, self.transfer_current, axis=0)
             savetxt(path, self.transfer_data)
 

@@ -24,7 +24,7 @@ resume = False
 if resume:
 	j= raw_input('Enter number of interventions:\n')
 # Perform three demonstrations
-for i in range(3):
+for i in range(5):
 	if not resume:
 		perform_handover.main()
 		pass
@@ -50,13 +50,19 @@ if getkey() == chr(0x1b):
 
 # Evaluation 
 eval_start = rospy.get_rostime().secs
-# Perform 10 Handovers
+# Perform 5 Handovers
 for i in range(5):
-	print('Handover number: %s' %i)
-	#perform_handover.main()
+	print('Handover number: %s' %(i+1))
+	perform_handover.main()
 
+#Evaluations
+print("Press any key to continue! (or press ESC to quit!)")
+if getkey() == chr(0x1b):
+	rospy.logerr('Interruption called')
+	exit()
 
-# Think of more evaluation criteria...
+ta.evaluations()
+
 
 
 end = rospy.get_rostime().secs
@@ -68,4 +74,4 @@ data_to_export = [eval_time, total_task_time]
 data_to_export = np.array(data_to_export)
 
 number = raw_input("Enter Participant ID for the last time: \n")
-savetxt('/home/miniproj/catkin_ws/src/vivek-handovers/src/telemetry/%s_total.csv' %number, data_to_export)
+savetxt('/home/miniproj/catkin_ws/src/vivek-handovers/telemetry/%s_total.csv' %number, data_to_export)

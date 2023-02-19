@@ -1,14 +1,15 @@
 #! /usr/bin/env python
 
 import os
-import numpy as np
-import random
 import math
 import rospy
-from std_msgs.msg import String
+import random
+import numpy as np
 import perform_handover
-from numpy import loadtxt, savetxt
 from getkey import getkey
+from std_msgs.msg import String
+from playsound import playsound
+from numpy import loadtxt, savetxt
 
 
 class Tuning_algo(object):
@@ -19,6 +20,7 @@ class Tuning_algo(object):
 		self.phase = str
 		self.choice = bool
 		self.option = float
+		self.option_no = int
 		self.final_choice = float
 
 		self.pos_x = float
@@ -39,8 +41,9 @@ class Tuning_algo(object):
 		self.tuning_steps = [0, 0, 0, 0, 0]
 		self.time_per_param = [0, 0, 0, 0, 0]
 
-		self.dir = '/home/miniproj/catkin_ws/src/vivek-handovers/src/profiles'
-		self.tel_dir = '/home/miniproj/catkin_ws/src/vivek-handovers/src/telemetry'
+		self.dir = '/home/miniproj/catkin_ws/src/vivek-handovers/profiles'
+		self.tel_dir = '/home/miniproj/catkin_ws/src/vivek-handovers/telemetry'
+		self.audio_dir = '/home/miniproj/catkin_ws/src/vivek-handovers/audio'
 	
 	def set_phase(self, phase='velocity'):
 		self.phase = phase
@@ -63,11 +66,18 @@ class Tuning_algo(object):
 		low =self.low
 
 		#Step 1, always the same.
+		self.option_no = 1
 		option_1 = self.low
 		self.option = option_1
+
+		self.save_params()
 		self.send_traj()
+
+		self.option_no = 2
 		option_2 = self.high
 		self.option = option_2
+
+		self.save_params()
 		self.send_traj()
 
 		self.choose()
@@ -95,12 +105,18 @@ class Tuning_algo(object):
 				else:
 					dirc = 1
 				
+				self.option_no = 1
 				self.option = option_1
-				# Show first trajectory	
+				# Show first trajectory
+
+				self.save_params()
 				self.send_traj()
 
+				self.option_no = 2
 				self.option = option_2
 				# Show second trajectory
+
+				self.save_params()
 				self.send_traj()
 
 				## Get human response
@@ -109,7 +125,7 @@ class Tuning_algo(object):
 					i+=1
 					if self.choice:
 						noof_option_1+=1
-					print('no of opt1:%s' %noof_option_1, side)
+					#print('no of opt1:%s' %noof_option_1, side)
 					if side=='left':
 						low = mid 
 						high = self.high - i*step_size
@@ -152,7 +168,7 @@ class Tuning_algo(object):
 		self.time_per_param[int(self.phase_no-1)]=end_time-start_time
 
 		self.save_telemetry()
-		self.save_params()
+		self.save_final_params()
 
 
 	def set_initial_params(self):
@@ -184,8 +200,8 @@ class Tuning_algo(object):
 
 		elif self.phase=='force_th':
 			self.phase_no =5
-			self.break_th = 0.5
-			self.high = 4.0
+			self.break_th = 0.1
+			self.high = 2.5
 			self.low = 1.25
 
 		elif self.phase=='delay':
@@ -195,8 +211,10 @@ class Tuning_algo(object):
 			self.low = 0.2
 
 
+
 	def choose(self):
 		self.tuning_steps[int(self.phase_no)-1] += 1
+		playsound(os.path.join(self.audio_dir, 'choose.'+'mp3'))
 		print("Type the preferred option:\n")
 		while True:
 			key = getkey()
@@ -255,6 +273,7 @@ class Tuning_algo(object):
 		#	rospy.loginfo('Tuning delay')
 		#	self.save_params()
 		#	self.set_phase(phase='delay')
+		
 		return
 
 	
@@ -269,6 +288,19 @@ class Tuning_algo(object):
 		self.force_th = self.params[4]
 		self.delay = self.params[5]
 		self.phase_no = self.params[6]
+
+	def load_final_values(self):
+		# Load the existing file of parameters
+		self.params = loadtxt(os.path.join(self.dir, '%s_final.csv' % self.name))
+		# Distribute the values in correct data structures
+		self.pos_x = self.params[0]
+		self.pos_y = self.params[1]
+		self.pos_z = self.params[2]
+		self.vel   = self.params[3]
+		self.force_th = self.params[4]
+		self.delay = self.params[5]
+		self.phase_no = self.params[6]
+
 
 
 	def set_params(self):
@@ -291,6 +323,7 @@ class Tuning_algo(object):
 		
 		elif self.phase=='delay':
 			self.params = [self.pos_x, self.pos_y, self.pos_z, self.vel, self.force_th, self.option, self.phase_no]
+
 		else:
 			rospy.logerr('Wrong Phase!')
 
@@ -299,19 +332,26 @@ class Tuning_algo(object):
 		self.set_params()
 		savetxt(os.path.join(self.dir, "%s.csv" %self.name), np.array(self.params))
 
+	def save_final_params(self):
+		self.set_params()
+		savetxt(os.path.join(self.dir, "%s_final.csv" %self.name), np.array(self.params))
 
 	def send_traj(self):
-		self.save_params()
 		print('Current option value: %s' %self.option)
-		perform_handover.main()
+		if self.option_no==1:
+			option=True
+		else:
+			option=False
+
+		perform_handover.main(audio=True, option=option)
 
 
 	def create_std_params(self):	
 		self.pos_x = 0.8
 		self.pos_y = -0.1
-		self.pos_z = 0.2
+		self.pos_z = 0.25
 		self.vel   = 0.4
-		self.force_th = 2.00
+		self.force_th = 1.45
 		self.delay = 0.3
 		self.phase_no = 1
 		
@@ -362,3 +402,181 @@ class Tuning_algo(object):
 	def save_telemetry(self):
 		path = os.path.join(self.tel_dir, self.name + '_tun.' + 'csv')
 		savetxt(path, self.telemetry)
+
+
+
+	def evaluations(self):
+		rospy.loginfo('Evaluation 2')
+		self.params[6] = 7
+		self.phase_no = 7
+
+		for i in range(5):
+			coin_toss=random.uniform(0,1)
+			if i+1 ==1:
+				self.phase='velocity'
+				if coin_toss > 0.5:
+					self.option=self.vel+random.uniform(0.1, 0.2)
+					self.option_no=1
+					self.save_params()
+					self.send_traj()
+					
+					self.load_final_values()
+					self.option=self.pos_x
+					self.option_no=2
+					self.save_params()
+					self.send_traj()
+
+					self.choose()
+
+				else:
+					self.load_final_values()
+					self.option=self.pos_x
+					self.option_no=1
+					self.save_params()
+					self.send_traj()
+
+					self.option=self.pos_x+random.uniform(0.1, 0.2)
+					self.save_params()
+					self.option_no=2
+					self.send_traj()
+
+					self.choose()
+
+			elif i+1 ==2:
+				self.phase='position_x'
+				if coin_toss > 0.5:
+					self.option=self.pos_x+random.uniform(0.05, 0.1)
+					self.option_no=1
+					self.save_params()
+					self.send_traj()
+					
+					self.load_final_values()
+					self.option=self.pos_x
+					self.option_no=2
+					self.save_params()
+					self.send_traj()
+
+					self.choose()
+
+				else:
+					self.load_final_values()
+					self.option=self.pos_x
+					self.option_no=1
+					self.save_params()
+					self.send_traj()
+
+					self.option=self.pos_x+random.uniform(0.05, 0.1)
+					self.save_params()
+					self.option_no=2
+					self.send_traj()
+
+					self.choose()
+
+			elif i+1 ==3:
+				self.phase='position_y'
+				if coin_toss > 0.5:
+					self.option=self.pos_y+random.uniform(0.1, 0.2)
+					self.option_no=1
+					self.save_params()
+					self.send_traj()
+					
+					self.load_final_values()
+					self.option=self.pos_y
+					self.option_no=2
+					self.save_params()
+					self.send_traj()
+
+					self.choose()
+
+				else:
+					self.load_final_values()
+					self.option=self.pos_y
+					self.option_no=1
+					self.save_params()
+					self.send_traj()
+
+					self.option=self.pos_y+random.uniform(0.1, 0.2)
+					self.save_params()
+					self.option_no=2
+					self.send_traj()
+
+					self.choose()
+
+			elif i+1 ==4:
+				self.phase='position_x'
+				if coin_toss > 0.5:
+					self.option=self.pos_x+random.uniform(0.1, 0.2)
+					self.option_no=1
+					self.save_params()
+					self.send_traj()
+					
+					self.load_final_values()
+					self.option=self.pos_x
+					self.option_no=2
+					self.save_params()
+					self.send_traj()
+
+					self.choose()
+
+				else:
+					self.load_final_values()
+					self.option=self.pos_x
+					self.option_no=1
+					self.save_params()
+					self.send_traj()
+
+					self.option=self.pos_x+random.uniform(0.1, 0.2)
+					self.save_params()
+					self.option_no=2
+					self.send_traj()
+
+					self.choose()
+
+			elif i+1 ==5:
+				self.phase='position_x'
+				if coin_toss > 0.5:
+					self.option=self.pos_x+random.uniform(0.1, 0.2)
+					self.option_no=1
+					self.save_params()
+					self.send_traj()
+					
+					self.load_final_values()
+					self.option=self.pos_x
+					self.option_no=2
+					self.save_params()
+					self.send_traj()
+
+					self.choose()
+
+				else:
+					self.load_final_values()
+					self.option=self.pos_x
+					self.option_no=1
+					self.save_params()
+					self.send_traj()
+
+					self.option=self.pos_x+random.uniform(0.1, 0.2)
+					self.save_params()
+					self.option_no=2
+					self.send_traj()
+
+					self.choose()
+
+			if (coin_toss>0.5 and self.choice) or (coin_toss<=0.5 and not self.choice):
+				self.eval_choice = 1
+			else:
+				self.eval_choice = 0
+			self.eval_recorder()
+
+	def eval_recorder(self):
+		path = os.path.join(self.tel_dir, self.name + "_eval." + "csv")
+
+		if os.path.exists(path):
+			eval_results = loadtxt(path)
+
+			eval_results = np.append(eval_results, self.eval_choice)
+			savetxt(path, eval_results)
+
+		else:
+			eval_results = [self.eval_choice]
+			savetxt(path, np.array(eval_results))

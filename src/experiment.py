@@ -21,6 +21,7 @@ start=rospy.get_rostime().secs
 
 # A block to choose whether to skip training (helpful for resuming an expt)
 resume = False
+eval_resume = False
 if resume:
 	j= raw_input('Enter number of interventions:\n')
 # Perform three demonstrations
@@ -39,7 +40,7 @@ if getkey() == chr(0x1b):
 # Begin tuning
 rospy.loginfo("Begin tuning now...")
 
-ta.start_tuning()
+#ta.start_tuning()
 
 # Check if the participant is ready
 # Pause code till experimenter presses a button

@@ -152,7 +152,7 @@ class Tuning_algo(object):
 
 
 				# Check for break criteria
-				if abs(option_1-option_2) < self.break_th  or noof_option_1==4:
+				if abs(option_1-option_2) < self.break_th  or noof_option_1>=4:
 					final_choice = option_1
 					print('final_choice=%s' %final_choice)
 					self.satisfied = True
@@ -168,7 +168,6 @@ class Tuning_algo(object):
 		self.time_per_param[int(self.phase_no-1)]=end_time-start_time
 
 		self.save_telemetry()
-		self.save_final_params()
 
 
 	def set_initial_params(self):
@@ -200,7 +199,7 @@ class Tuning_algo(object):
 
 		elif self.phase=='force_th':
 			self.phase_no =5
-			self.break_th = 0.1
+			self.break_th = 0.25
 			self.high = 2.5
 			self.low = 1.25
 
@@ -241,31 +240,32 @@ class Tuning_algo(object):
 		if self.params[6]==1:
 			rospy.loginfo('Tuning velocity')
 			self.set_phase(phase='velocity')
-			self.save_params()
 			self.params[6]=2
+			self.save_params()
 		
 		if self.params[6]==2:
 			rospy.loginfo('Tuning X')
 			self.set_phase(phase='position_x')
-			self.save_params()
 			self.params[6]=3
+			self.save_params()
 		
 		if self.params[6]==3:
 			rospy.loginfo('Tuning Y')
 			self.set_phase(phase='position_y')
-			self.save_params()
 			self.params[6]=4
+			self.save_params()
 
 		if self.params[6]==4:
 			rospy.loginfo('Tuning Z')
 			self.set_phase(phase='position_z')
-			self.save_params()
 			self.params[6]=5
+			self.save_params()
 
 		if self.params[6]==5:
 			rospy.loginfo('Tuning force')
 			self.set_phase(phase='force_th')
 			self.save_params()
+			self.save_final_params()
 			rospy.loginfo('TRAINING COMPLETE!')
 			#self.params[6]=6
 
@@ -289,6 +289,7 @@ class Tuning_algo(object):
 		self.delay = self.params[5]
 		self.phase_no = self.params[6]
 
+	
 	def load_final_values(self):
 		# Load the existing file of parameters
 		self.params = loadtxt(os.path.join(self.dir, '%s_final.csv' % self.name))
@@ -302,10 +303,13 @@ class Tuning_algo(object):
 		self.phase_no = self.params[6]
 
 
-
-	def set_params(self):
+	def set_params(self, evals=False):
 		# Method to change a particular parameter during tuning
-		self.load_last_values()
+		if evals:
+			self.load_final_values()
+		else:
+			self.load_last_values()
+
 		if self.phase=='position_x':
 			self.params = [self.option, self.pos_y, self.pos_z, self.vel, self.force_th, self.delay, self.phase_no]
 		
@@ -328,8 +332,8 @@ class Tuning_algo(object):
 			rospy.logerr('Wrong Phase!')
 
 
-	def save_params(self):
-		self.set_params()
+	def save_params(self, evals=False):
+		self.set_params(evals)
 		savetxt(os.path.join(self.dir, "%s.csv" %self.name), np.array(self.params))
 
 	def save_final_params(self):
@@ -351,7 +355,7 @@ class Tuning_algo(object):
 		self.pos_y = -0.1
 		self.pos_z = 0.25
 		self.vel   = 0.4
-		self.force_th = 1.45
+		self.force_th = 1.65
 		self.delay = 0.3
 		self.phase_no = 1
 		
@@ -410,18 +414,20 @@ class Tuning_algo(object):
 		self.params[6] = 7
 		self.phase_no = 7
 
-		for i in range(5):
+		for i in range(3):
 			coin_toss=random.uniform(0,1)
-			if i+1 ==1:
+			toss = random.uniform(0,1)
+			sign = -1 if toss < 0.5 else 1
+			if i+1 ==2 or i+1== 5:
 				self.phase='velocity'
 				if coin_toss > 0.5:
-					self.option=self.vel+random.uniform(0.1, 0.2)
+					self.option=self.vel-random.uniform(0.1, 0.2)
 					self.option_no=1
-					self.save_params()
+					self.save_params(evals=True)
 					self.send_traj()
 					
 					self.load_final_values()
-					self.option=self.pos_x
+					self.option=self.vel
 					self.option_no=2
 					self.save_params()
 					self.send_traj()
@@ -430,22 +436,22 @@ class Tuning_algo(object):
 
 				else:
 					self.load_final_values()
-					self.option=self.pos_x
+					self.option=self.vel
 					self.option_no=1
 					self.save_params()
 					self.send_traj()
 
-					self.option=self.pos_x+random.uniform(0.1, 0.2)
+					self.option=self.vel-random.uniform(0.1, 0.2)
 					self.save_params()
 					self.option_no=2
 					self.send_traj()
 
 					self.choose()
 
-			elif i+1 ==2:
+			elif i+1 ==1:
 				self.phase='position_x'
 				if coin_toss > 0.5:
-					self.option=self.pos_x+random.uniform(0.05, 0.1)
+					self.option=self.pos_x+sign*random.uniform(0.05, 0.15)
 					self.option_no=1
 					self.save_params()
 					self.send_traj()
@@ -465,17 +471,19 @@ class Tuning_algo(object):
 					self.save_params()
 					self.send_traj()
 
-					self.option=self.pos_x+random.uniform(0.05, 0.1)
+					self.option=self.pos_x+sign*random.uniform(0.05, 0.15)
 					self.save_params()
 					self.option_no=2
 					self.send_traj()
 
 					self.choose()
 
-			elif i+1 ==3:
+			elif i+1 ==-1:
 				self.phase='position_y'
+				print(coin_toss)
 				if coin_toss > 0.5:
-					self.option=self.pos_y+random.uniform(0.1, 0.2)
+					self.option=self.pos_y+sign*random.uniform(0.02, 0.05)
+					print(self.option)
 					self.option_no=1
 					self.save_params()
 					self.send_traj()
@@ -495,23 +503,23 @@ class Tuning_algo(object):
 					self.save_params()
 					self.send_traj()
 
-					self.option=self.pos_y+random.uniform(0.1, 0.2)
+					self.option=self.pos_y+sign*random.uniform(0.02, 0.05)
 					self.save_params()
 					self.option_no=2
 					self.send_traj()
 
 					self.choose()
 
-			elif i+1 ==4:
-				self.phase='position_x'
+			elif i+1 ==-1:
+				self.phase='position_z'
 				if coin_toss > 0.5:
-					self.option=self.pos_x+random.uniform(0.1, 0.2)
+					self.option=self.pos_z+sign*random.uniform(0.02, 0.05)
 					self.option_no=1
 					self.save_params()
 					self.send_traj()
 					
 					self.load_final_values()
-					self.option=self.pos_x
+					self.option=self.pos_z
 					self.option_no=2
 					self.save_params()
 					self.send_traj()
@@ -520,28 +528,28 @@ class Tuning_algo(object):
 
 				else:
 					self.load_final_values()
-					self.option=self.pos_x
+					self.option=self.pos_z
 					self.option_no=1
 					self.save_params()
 					self.send_traj()
 
-					self.option=self.pos_x+random.uniform(0.1, 0.2)
+					self.option=self.pos_z+sign*random.uniform(0.02, 0.05)
 					self.save_params()
 					self.option_no=2
 					self.send_traj()
 
 					self.choose()
 
-			elif i+1 ==5:
-				self.phase='position_x'
+			elif i+1 == 3 or i+1== 4:
+				self.phase='force_th'
 				if coin_toss > 0.5:
-					self.option=self.pos_x+random.uniform(0.1, 0.2)
+					self.option=self.force_th+random.uniform(0.15, 0.45)
 					self.option_no=1
 					self.save_params()
 					self.send_traj()
 					
 					self.load_final_values()
-					self.option=self.pos_x
+					self.option=self.force_th
 					self.option_no=2
 					self.save_params()
 					self.send_traj()
@@ -550,19 +558,19 @@ class Tuning_algo(object):
 
 				else:
 					self.load_final_values()
-					self.option=self.pos_x
+					self.option=self.force_th
 					self.option_no=1
 					self.save_params()
 					self.send_traj()
 
-					self.option=self.pos_x+random.uniform(0.1, 0.2)
+					self.option=self.force_th+random.uniform(0.15, 0.45)
 					self.save_params()
 					self.option_no=2
 					self.send_traj()
 
 					self.choose()
 
-			if (coin_toss>0.5 and self.choice) or (coin_toss<=0.5 and not self.choice):
+			if (coin_toss>0.5 and not self.choice) or (coin_toss<=0.5 and self.choice):
 				self.eval_choice = 1
 			else:
 				self.eval_choice = 0

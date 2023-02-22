@@ -322,12 +322,13 @@ class Handover(object):
         try:
             if self.name=='TRANSFER':
                 start_time = rospy.get_rostime().secs
+                start_time_nsecs = rospy.get_rostime().nsecs
                 self.timeout = True
                 while (rospy.get_rostime().secs - start_time) <= duration:    
                     if self.HO_flag():
                         self.timeout = False
-                        end_time = rospy.get_rostime().secs
-                        timeout = end_time - start_time
+                        end_time = rospy.get_rostime().nsecs
+                        timeout = float(end_time - start_time_nsecs)
                         break
                     else:
                         self.timeout = True
@@ -446,7 +447,7 @@ class Handover(object):
                 self.transfer_data = [self.transfer_data,]
             #print(self.transfer_data, self.transfer_current)
             self.transfer_data=np.append(self.transfer_data, self.transfer_current, axis=0)
-            savetxt(path, self.transfer_data)
+            savetxt(path, self.transfer_data, delimiter=' ')
 
         else:
-            savetxt(path, np.array(self.transfer_current)) 
+            savetxt(path, np.array(self.transfer_current), delimiter=' ') 

@@ -45,17 +45,17 @@ class Tuning_algo(object):
 		self.tel_dir = '/home/miniproj/catkin_ws/src/vivek-handovers/telemetry'
 		self.audio_dir = '/home/miniproj/catkin_ws/src/vivek-handovers/audio'
 	
-	def set_phase(self, phase='velocity'):
+	def set_phase(self, phase):
 		self.phase = phase
 		self.set_initial_params()
 		self.set_params()
+		self.load_telemetry()
 		self.tuning()
 
 
 	def tuning(self):
-		
 		start_time=rospy.get_rostime().secs
-		self.tuning_steps[int(self.phase_no)-1] = 1
+		self.tuning_steps[int(self.phase_no)-1] = 0
 		
 		print(self.low, self.high)
 		mid = (self.low + self.high)/2		
@@ -166,7 +166,7 @@ class Tuning_algo(object):
 		end_time = rospy.get_rostime().secs
 		
 		self.time_per_param[int(self.phase_no-1)]=end_time-start_time
-
+		self.telemetry = np.array([self.tuning_steps, self.time_per_param])
 		self.save_telemetry()
 
 
@@ -240,26 +240,26 @@ class Tuning_algo(object):
 		if self.params[6]==1:
 			rospy.loginfo('Tuning velocity')
 			self.set_phase(phase='velocity')
-			self.params[6]=2
 			self.save_params()
-		
+			self.params[6]=2
+
 		if self.params[6]==2:
 			rospy.loginfo('Tuning X')
 			self.set_phase(phase='position_x')
-			self.params[6]=3
 			self.save_params()
+			self.params[6]=3
 		
 		if self.params[6]==3:
 			rospy.loginfo('Tuning Y')
 			self.set_phase(phase='position_y')
-			self.params[6]=4
 			self.save_params()
+			self.params[6]=4
 
 		if self.params[6]==4:
 			rospy.loginfo('Tuning Z')
 			self.set_phase(phase='position_z')
-			self.params[6]=5
 			self.save_params()
+			self.params[6]=5
 
 		if self.params[6]==5:
 			rospy.loginfo('Tuning force')
@@ -287,7 +287,7 @@ class Tuning_algo(object):
 		self.vel   = self.params[3]
 		self.force_th = self.params[4]
 		self.delay = self.params[5]
-		self.phase_no = self.params[6]
+		#self.phase_no = self.params[6]
 
 	
 	def load_final_values(self):
@@ -355,7 +355,7 @@ class Tuning_algo(object):
 		self.pos_y = -0.1
 		self.pos_z = 0.25
 		self.vel   = 0.4
-		self.force_th = 1.65
+		self.force_th = 2.00
 		self.delay = 0.3
 		self.phase_no = 1
 		
@@ -401,6 +401,9 @@ class Tuning_algo(object):
 
 	def load_telemetry(self):
 		self.telemetry = loadtxt(os.path.join(self.tel_dir, self.name + '_tun.' + 'csv'))
+		print(self.telemetry)
+		self.time_per_param = self.telemetry[1]
+		self.tuning_steps = self.telemetry[0]
 
 
 	def save_telemetry(self):

@@ -40,7 +40,7 @@ if getkey() == chr(0x1b):
 # Begin tuning
 rospy.loginfo("Begin tuning now...")
 
-#ta.start_tuning()
+ta.start_tuning()
 
 # Check if the participant is ready
 # Pause code till experimenter presses a button

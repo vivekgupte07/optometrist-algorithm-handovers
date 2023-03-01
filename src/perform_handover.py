@@ -1,16 +1,19 @@
 #! /usr/bin/env python
 
 # Main control loop for Sawyer Handover 
-
+import os
 import rospy
+from playsound import playsound
 from handover_class import Handover
 
-def main():
+def main(audio=False, option=True):
     handover = Handover()
-    
+    audio_dir = '/home/miniproj/catkin_ws/src/vivek-handovers/audio'
     # initialize
     counter = 0
     timeout = False
+    timeout = handover.get_timeout_state()
+     
     try:
         if not timeout:
             handover.set_positions(name='OBSERVE')
@@ -31,6 +34,11 @@ def main():
         else:
             handover.set_positions(name='HOME')
         
+        if audio:
+                if option:
+                    playsound(os.path.join(audio_dir, 'option1.' + 'mp3'))
+                else:
+                    playsound(os.path.join(audio_dir, 'option2.' + 'mp3'))
            
         person = False
         while not person:
@@ -45,7 +53,7 @@ def main():
         # Handover period with a 5 second timeout
         handover.interaction_mode(False) #### Currently Turned off #### set 'True' to turn on #####
         
-        while not handover.add_timeout(duration=5.0):
+        while not handover.add_timeout(duration=15.0):
             pass
 
         timeout = handover.get_timeout_state()
@@ -59,10 +67,9 @@ def main():
 
     except rospy.ROSInterruptException:
         rospy.logerr('Keyboard interrupt detected from the user. Exiting before trajectory completion.')
-        return 
+        exit()
 
 
 
 if __name__ == '__main__':
     main()
- 

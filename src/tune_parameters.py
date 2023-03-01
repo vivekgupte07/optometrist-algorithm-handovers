@@ -125,6 +125,8 @@ class Tuning_algo(object):
 					i+=1
 					if self.choice:
 						noof_option_1+=1
+					else:
+						noof_option_1=0
 					#print('no of opt1:%s' %noof_option_1, side)
 					if side=='left':
 						low = mid 
@@ -183,25 +185,25 @@ class Tuning_algo(object):
 			self.phase_no = 2
 			self.high = 1.0
 			self.low = 0.80
-			self.break_th = 0.05
+			self.break_th = 0.025
 
 		elif self.phase=='position_y':
 			self.phase_no =3
-			self.break_th = 0.05
+			self.break_th = 0.075
 			self.high = 0.2
 			self.low = -0.2
 
 		elif self.phase=='position_z':
 			self.phase_no =4
-			self.break_th = 0.05
+			self.break_th = 0.025
 			self.high = 0.35
 			self.low = 0.15
 
 		elif self.phase=='force_th':
 			self.phase_no =5
-			self.break_th = 0.25
-			self.high = 2.5
-			self.low = 1.25
+			self.break_th = 2.0
+			self.high = 25
+			self.low = 13
 
 		elif self.phase=='delay':
 			self.phase_no =6
@@ -355,7 +357,7 @@ class Tuning_algo(object):
 		self.pos_y = -0.1
 		self.pos_z = 0.25
 		self.vel   = 0.4
-		self.force_th = 2.00
+		self.force_th = 18#2.00
 		self.delay = 0.3
 		self.phase_no = 1
 		
@@ -417,14 +419,17 @@ class Tuning_algo(object):
 		self.params[6] = 7
 		self.phase_no = 7
 
-		for i in range(3):
+		for i in range(5):
 			coin_toss=random.uniform(0,1)
 			toss = random.uniform(0,1)
 			sign = -1 if toss < 0.5 else 1
 			if i+1 ==2 or i+1== 5:
 				self.phase='velocity'
 				if coin_toss > 0.5:
-					self.option=self.vel-random.uniform(0.1, 0.2)
+					if self.vel > 0.4:
+						self.option=self.vel - 0.2
+					else:
+						self.option=self.vel + 0.2
 					self.option_no=1
 					self.save_params(evals=True)
 					self.send_traj()
@@ -432,20 +437,23 @@ class Tuning_algo(object):
 					self.load_final_values()
 					self.option=self.vel
 					self.option_no=2
-					self.save_params()
+					self.save_params(evals=True)
 					self.send_traj()
 
 					self.choose()
 
 				else:
 					self.load_final_values()
-					self.option=self.vel
+					self.option = self.vel
 					self.option_no=1
-					self.save_params()
+					self.save_params(evals=True)
 					self.send_traj()
-
-					self.option=self.vel-random.uniform(0.1, 0.2)
-					self.save_params()
+					
+					if self.vel > 0.4:
+						self.option=self.vel - 0.2
+					else:
+						self.option=self.vel + 0.2
+					self.save_params(evals=True)
 					self.option_no=2
 					self.send_traj()
 
@@ -453,16 +461,20 @@ class Tuning_algo(object):
 
 			elif i+1 ==1:
 				self.phase='position_x'
-				if coin_toss > 0.5:
-					self.option=self.pos_x+sign*random.uniform(0.05, 0.15)
+				if coin_toss > 0.5:		
+					if self.pos_x > 0.9:
+						self.option=self.pos_x-0.05
+					else:
+						self.option=self.pos_x+0.05
+
 					self.option_no=1
-					self.save_params()
+					self.save_params(evals=True)
 					self.send_traj()
 					
 					self.load_final_values()
 					self.option=self.pos_x
 					self.option_no=2
-					self.save_params()
+					self.save_params(evals=True)
 					self.send_traj()
 
 					self.choose()
@@ -474,7 +486,10 @@ class Tuning_algo(object):
 					self.save_params()
 					self.send_traj()
 
-					self.option=self.pos_x+sign*random.uniform(0.05, 0.15)
+					if self.pos_x > 0.9:
+						self.option=self.pos_x-0.05
+					else:
+						self.option=self.pos_x+0.05
 					self.save_params()
 					self.option_no=2
 					self.send_traj()
@@ -485,16 +500,19 @@ class Tuning_algo(object):
 				self.phase='position_y'
 				print(coin_toss)
 				if coin_toss > 0.5:
-					self.option=self.pos_y+sign*random.uniform(0.02, 0.05)
+					if self.pos_y > 0.0:
+						self.option=self.pos_y-0.05
+					else:
+						self.option=self.pos_y+0.05
 					print(self.option)
 					self.option_no=1
-					self.save_params()
+					self.save_params(evals=True)
 					self.send_traj()
 					
 					self.load_final_values()
 					self.option=self.pos_y
 					self.option_no=2
-					self.save_params()
+					self.save_params(evals=True)
 					self.send_traj()
 
 					self.choose()
@@ -503,28 +521,33 @@ class Tuning_algo(object):
 					self.load_final_values()
 					self.option=self.pos_y
 					self.option_no=1
-					self.save_params()
+					self.save_params(evals=True)
 					self.send_traj()
 
-					self.option=self.pos_y+sign*random.uniform(0.02, 0.05)
-					self.save_params()
+					if self.pos_y > 0.0:
+						self.option=self.pos_y-0.05
+					else:
+						self.option=self.pos_y+0.05
+					self.save_params(evals=True)
 					self.option_no=2
 					self.send_traj()
-
 					self.choose()
 
 			elif i+1 ==-1:
 				self.phase='position_z'
 				if coin_toss > 0.5:
-					self.option=self.pos_z+sign*random.uniform(0.02, 0.05)
+					if self.pos_z>0.25:
+						self.option=self.pos_z-0.05
+					else:
+						self.option=self.pos_z+0.05
 					self.option_no=1
-					self.save_params()
+					self.save_params(evals=True)
 					self.send_traj()
 					
 					self.load_final_values()
 					self.option=self.pos_z
 					self.option_no=2
-					self.save_params()
+					self.save_params(evals=True)
 					self.send_traj()
 
 					self.choose()
@@ -533,11 +556,15 @@ class Tuning_algo(object):
 					self.load_final_values()
 					self.option=self.pos_z
 					self.option_no=1
-					self.save_params()
+					self.save_params(evals=True)
 					self.send_traj()
 
-					self.option=self.pos_z+sign*random.uniform(0.02, 0.05)
-					self.save_params()
+					if self.pos_z>0.25:
+						self.option=self.pos_z-0.05
+					else:
+						self.option=self.pos_z+0.05
+					self.save_params(evals=True)
+					
 					self.option_no=2
 					self.send_traj()
 
@@ -546,15 +573,19 @@ class Tuning_algo(object):
 			elif i+1 == 3 or i+1== 4:
 				self.phase='force_th'
 				if coin_toss > 0.5:
-					self.option=self.force_th+random.uniform(0.15, 0.45)
+					if self.force_th>18:
+						self.option = self.force_th-3
+					else:
+						self.option = self.force_th+3
+
 					self.option_no=1
-					self.save_params()
+					self.save_params(evals=True)
 					self.send_traj()
 					
 					self.load_final_values()
 					self.option=self.force_th
 					self.option_no=2
-					self.save_params()
+					self.save_params(evals=True)
 					self.send_traj()
 
 					self.choose()
@@ -563,11 +594,14 @@ class Tuning_algo(object):
 					self.load_final_values()
 					self.option=self.force_th
 					self.option_no=1
-					self.save_params()
+					self.save_params(evals=True)
 					self.send_traj()
 
-					self.option=self.force_th+random.uniform(0.15, 0.45)
-					self.save_params()
+					if self.force_th>18:
+						self.option = self.force_th-3
+					else:
+						self.option = self.force_th+3
+					self.save_params(evals=True)
 					self.option_no=2
 					self.send_traj()
 

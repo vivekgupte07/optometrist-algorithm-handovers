@@ -22,6 +22,11 @@ start=rospy.get_rostime().secs
 # A block to choose whether to skip training (helpful for resuming an expt)
 resume = False
 eval_resume = False
+print("Start the camera and press any key to continue! (or press ESC to quit!)")
+if getkey() == chr(0x1b):
+	rospy.logerr('Interruption called')
+	exit()
+
 if resume:
 	j= raw_input('Enter number of interventions:\n')
 # Perform three demonstrations

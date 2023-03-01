@@ -88,7 +88,8 @@ class Handover(object):
         else:
             self.delay = 2.0
         self.low_force_factor = 0
-        self.high_force_factor = params_[4]
+        self.high_force_factor = 1.2 #params_[4]
+        self.force_th = params_[4]
         self.past_force = -1
         
 
@@ -256,6 +257,7 @@ class Handover(object):
         
         pass
 
+
     def grasp(self, act):
         try:
             gripper(act)
@@ -291,14 +293,14 @@ class Handover(object):
 
 
         if self.pubcounter==5:
-            self.force_avg=avg+2
+            self.force_avg= self.force_th  #avg+2
             print(self.force_avg)
 
 
         if self.name == 'TRANSFER':
             #print(self.pubcounter, eq_force)    
             if self.pubcounter>5:
-                if avg > self.high_force_factor * self.force_avg:
+                if avg > self.high_force_factor*self.force_th: #self.high_force_factor * self.force_avg:
                     self.HO_detection_flag=1
             if self.HO_detection_flag!=1:
                 #print(eq_force, avg, self.force_avg)
@@ -328,15 +330,18 @@ class Handover(object):
                     if self.HO_flag():
                         self.timeout = False
                         end_time = rospy.get_rostime().nsecs
-                        timeout = float(end_time - start_time_nsecs)
+                        timeout = end_time - start_time_nsecs
                         break
                     else:
                         self.timeout = True
+                        timeout = duration
                 
                 if self.timeout:
-                    self.transfer_current = [[self.force_avg*self.high_force_factor, -1]]
+                    self.transfer_current = [[self.force_th*self.high_force_factor, -1]]
+                    #self.transfer_current = [[self.force_avg*self.high_force_factor, -1]]
                 else:
-                    self.transfer_current = [[self.force_avg*self.high_force_factor, timeout]]
+                    self.transfer_current = [[self.force_th*self.high_force_factor, timeout]]
+                    #self.transfer_current = [[self.force_avg*self.high_force_factor, timeout]]
                 self.save_data()
                 return True
         except rospy.ROSInterruptException:

@@ -1,5 +1,10 @@
 #! /usr/bin/env python
 
+# Script to keep the head of the Robot stationary
+# Run in a separate terminal
+# Taken from the intera_sdk headmovement
+
+
 import rospy
 
 from intera_interface import Head

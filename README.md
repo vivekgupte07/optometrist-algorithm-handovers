@@ -5,7 +5,7 @@
 This repository consists of a handover controller for the Sawyer robotic arm.
 
 The robot picks up an object of fixed shape and hands it over to the collaborating human user.
-The handover uses Moveit for trajectories and force sensing to detect the transfer, hence the user has to tug on the object before the gripper opens. The values of force thresholds are fixed for this particular object, and will have to be changed when using a different object.
+The handover uses Moveit! for trajectories and force sensing to detect the transfer, hence the user has to tug on the object before the gripper opens. The values of force thresholds are fixed for this particular object, and will have to be changed when using a different object.
 
 In ``moveitcontroller`` you will find the code for just performing a single handover. Dynamic force thresholds are used, which are not 100% reliable. It is made more reliable in future versions that you will find on other branches. I hope to update the fixes here soon.
 

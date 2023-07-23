@@ -5,7 +5,7 @@ This work has been accepted for presentation at IEEE RO-MAN 2023. (Paper and vid
 ## Optometrist's Algorithm
 
 In this HRI project we have used the Optometrist's Algorithm, that allows users to personalize a Handover.
-Read more about the algorithm in my thesis: [Personalization of Human-Robot Handovers using Evaluative Feedback]https://drive.google.com/file/d/15remZ3Qdo5rqG4U79ntg7bk-oFRxiYEa/view?usp=drive_link)
+Read more about the algorithm in my thesis: [Personalization of Human-Robot Handovers using Evaluative Feedback](https://drive.google.com/file/d/15remZ3Qdo5rqG4U79ntg7bk-oFRxiYEa/view?usp=drive_link)
 
 ## Handover Controlller for the Sawyer Robot Arm
 
